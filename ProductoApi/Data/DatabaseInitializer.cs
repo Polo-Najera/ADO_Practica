@@ -1,4 +1,4 @@
-using Microsoft.Data.SqlClient;
+using MySqlConnector;
 
 namespace ProductoApi.Data;
 
@@ -9,60 +9,60 @@ public static class DatabaseInitializer
         var cadenaConexion = configuracion.GetConnectionString("ProductosDb")
             ?? throw new InvalidOperationException("Falta la cadena de conexión 'ProductosDb'.");
 
-        var builder = new SqlConnectionStringBuilder(cadenaConexion);
-        var nombreBaseDatos = builder.InitialCatalog;
+        var builder = new MySqlConnectionStringBuilder(cadenaConexion);
+        var nombreBaseDatos = builder.Database;
 
         if (string.IsNullOrWhiteSpace(nombreBaseDatos))
         {
             throw new InvalidOperationException("La cadena de conexión debe indicar una base de datos.");
         }
 
-        var conexionMaster = new SqlConnectionStringBuilder(cadenaConexion)
+        var conexionServidor = new MySqlConnectionStringBuilder(cadenaConexion)
         {
-            InitialCatalog = "master"
+            Database = string.Empty
         }.ConnectionString;
 
-        using (var conexion = new SqlConnection(conexionMaster))
+        using (var conexion = new MySqlConnection(conexionServidor))
         {
             conexion.Open();
-            var nombreSeguro = nombreBaseDatos.Replace("]", "]]");
-            using var comando = new SqlCommand(
-                $"IF DB_ID(@Nombre) IS NULL CREATE DATABASE [{nombreSeguro}];", conexion);
-            comando.Parameters.AddWithValue("@Nombre", nombreBaseDatos);
+            var nombreSeguro = nombreBaseDatos.Replace("`", "``");
+            using var comando = new MySqlCommand(
+                $"CREATE DATABASE IF NOT EXISTS `{nombreSeguro}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;",
+                conexion);
             comando.ExecuteNonQuery();
         }
 
-        using (var conexion = new SqlConnection(cadenaConexion))
+        using (var conexion = new MySqlConnection(cadenaConexion))
         {
             conexion.Open();
 
-            using (var comando = new SqlCommand(@"
-                IF OBJECT_ID('dbo.Productos', 'U') IS NULL
-                BEGIN
-                    CREATE TABLE dbo.Productos (
-                        Id INT IDENTITY(1,1) PRIMARY KEY,
-                        Nombre NVARCHAR(100) NOT NULL,
-                        Descripcion NVARCHAR(255) NULL,
-                        Precio DECIMAL(10,2) NOT NULL CHECK (Precio >= 0),
-                        Stock INT NOT NULL DEFAULT 0 CHECK (Stock >= 0),
-                        Categoria NVARCHAR(50) NULL,
-                        FechaCreacion DATETIME2 NOT NULL DEFAULT SYSDATETIME()
-                    );
-                END", conexion))
+            using (var comando = new MySqlCommand(@"
+                CREATE TABLE IF NOT EXISTS Productos (
+                    Id INT AUTO_INCREMENT PRIMARY KEY,
+                    Nombre VARCHAR(100) NOT NULL,
+                    Descripcion VARCHAR(255) NULL,
+                    Precio DECIMAL(10,2) NOT NULL,
+                    Stock INT NOT NULL DEFAULT 0,
+                    Categoria VARCHAR(50) NULL,
+                    FechaCreacion DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;", conexion))
             {
                 comando.ExecuteNonQuery();
             }
 
-            using (var comando = new SqlCommand(@"
-                IF NOT EXISTS (SELECT 1 FROM dbo.Productos)
-                BEGIN
-                    INSERT INTO dbo.Productos (Nombre, Descripcion, Precio, Stock, Categoria)
-                    VALUES ('Laptop Lenovo', 'Laptop de 15 pulgadas, 16 GB RAM', 15999.99, 8, 'Computadoras'),
-                           ('Mouse Logitech', 'Mouse inalámbrico USB', 349.50, 25, 'Accesorios'),
-                           ('Audífonos Sony', 'Audífonos con cancelación de ruido', 2899.00, 12, 'Audio');
-                END", conexion))
+            using (var comando = new MySqlCommand("SELECT COUNT(*) FROM Productos;", conexion))
             {
-                comando.ExecuteNonQuery();
+                var total = Convert.ToInt32(comando.ExecuteScalar());
+                if (total == 0)
+                {
+                    using var insertar = new MySqlCommand(@"
+                        INSERT INTO Productos (Nombre, Descripcion, Precio, Stock, Categoria)
+                        VALUES ('Laptop Lenovo', 'Laptop de 15 pulgadas, 16 GB RAM', 15999.99, 8, 'Computadoras'),
+                               ('Mouse Logitech', 'Mouse inalámbrico USB', 349.50, 25, 'Accesorios'),
+                               ('Audífonos Sony', 'Audífonos con cancelación de ruido', 2899.00, 12, 'Audio');",
+                        conexion);
+                    insertar.ExecuteNonQuery();
+                }
             }
         }
 

@@ -1,17 +1,19 @@
-# ADO_Practica - API CRUD de Productos
+# ADO_Practica - API CRUD de Productos con MySQL
 
-Backend desarrollado con ASP.NET Core Web API que administra productos mediante operaciones CRUD, usando **SQL Server** y **ADO.NET** con consultas parametrizadas.
+Backend desarrollado con ASP.NET Core Web API que administra productos mediante operaciones CRUD, usando **MySQL** y **ADO.NET** con consultas parametrizadas.
+
+> Nota: las pruebas se realizaron con el MySQL incluido en **XAMPP**, que internamente es **MariaDB 10.4.32**. Es compatible con MySQL y con el conector utilizado. También funciona con un servidor MySQL Oracle cambiando únicamente la cadena de conexión.
 
 ## Tecnologías
 
 - .NET 10 / ASP.NET Core Web API
-- ADO.NET (`Microsoft.Data.SqlClient`)
-- SQL Server 2022
+- ADO.NET (`MySqlConnector`)
+- MySQL / MariaDB (XAMPP)
 - Swagger UI (`Swashbuckle.AspNetCore`)
 
 ## Funcionalidades
 
-- Conexión a SQL Server.
+- Conexión a MySQL.
 - Consultas de productos.
 - Inserción de productos.
 - Actualización de productos.
@@ -22,8 +24,8 @@ Backend desarrollado con ASP.NET Core Web API que administra productos mediante 
 ## Requisitos
 
 - .NET SDK 10
-- SQL Server con la instancia `.\SQLDEVELOPER`
-- Autenticación de Windows habilitada
+- XAMPP con el servicio **MySQL** iniciado en el puerto `3306`
+- Usuario `root` sin contraseña (configuración por defecto de XAMPP)
 
 ## Base de datos
 
@@ -31,19 +33,24 @@ La cadena de conexión se encuentra en `ProductoApi/appsettings.json`:
 
 ```json
 "ConnectionStrings": {
-  "ProductosDb": "Server=.\\SQLDEVELOPER;Database=DB_Productos;Trusted_Connection=True;TrustServerCertificate=True;Encrypt=False;"
+  "ProductosDb": "Server=localhost;Port=3306;Database=DB_Productos;User ID=root;Password=;"
 }
 ```
+
+Si tu MySQL tiene contraseña, cambia `Password=;` por `Password=tu_contraseña;`.
 
 Al iniciar la aplicación, `DatabaseInitializer` crea automáticamente:
 
 - La base de datos `DB_Productos`.
-- La tabla `dbo.Productos`.
+- La tabla `Productos`.
 - Tres productos de ejemplo si la tabla está vacía.
 
 También se incluye el script `ProductoApi/database/init.sql` como referencia.
 
 ## Ejecutar el proyecto
+
+1. Abre el Panel de Control de XAMPP e inicia **MySQL**.
+2. Desde la raíz del proyecto ejecuta:
 
 ```powershell
 dotnet restore

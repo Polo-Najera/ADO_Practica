@@ -1,4 +1,4 @@
-using Microsoft.Data.SqlClient;
+using MySqlConnector;
 using ProductoApi.Models;
 
 namespace ProductoApi.Repositories;
@@ -13,17 +13,17 @@ public class ProductoRepository : IProductoRepository
             ?? throw new InvalidOperationException("Falta la cadena de conexión 'ProductosDb'.");
     }
 
-    private SqlConnection CrearConexion() => new(_connectionString);
+    private MySqlConnection CrearConexion() => new(_connectionString);
 
     public List<Producto> ObtenerTodos()
     {
         var productos = new List<Producto>();
         const string sql = @"SELECT Id, Nombre, Descripcion, Precio, Stock, Categoria, FechaCreacion
-                             FROM dbo.Productos ORDER BY Id";
+                             FROM Productos ORDER BY Id";
 
         using var conexion = CrearConexion();
         conexion.Open();
-        using var comando = new SqlCommand(sql, conexion);
+        using var comando = new MySqlCommand(sql, conexion);
         using var lector = comando.ExecuteReader();
 
         while (lector.Read())
@@ -37,11 +37,11 @@ public class ProductoRepository : IProductoRepository
     public Producto? ObtenerPorId(int id)
     {
         const string sql = @"SELECT Id, Nombre, Descripcion, Precio, Stock, Categoria, FechaCreacion
-                             FROM dbo.Productos WHERE Id = @Id";
+                             FROM Productos WHERE Id = @Id";
 
         using var conexion = CrearConexion();
         conexion.Open();
-        using var comando = new SqlCommand(sql, conexion);
+        using var comando = new MySqlCommand(sql, conexion);
         comando.Parameters.AddWithValue("@Id", id);
         using var lector = comando.ExecuteReader();
 
@@ -50,21 +50,21 @@ public class ProductoRepository : IProductoRepository
 
     public int Insertar(Producto producto)
     {
-        const string sql = @"INSERT INTO dbo.Productos (Nombre, Descripcion, Precio, Stock, Categoria, FechaCreacion)
-                             VALUES (@Nombre, @Descripcion, @Precio, @Stock, @Categoria, SYSDATETIME());
-                             SELECT CAST(SCOPE_IDENTITY() AS int);";
+        const string sql = @"INSERT INTO Productos (Nombre, Descripcion, Precio, Stock, Categoria, FechaCreacion)
+                             VALUES (@Nombre, @Descripcion, @Precio, @Stock, @Categoria, NOW());
+                             SELECT LAST_INSERT_ID();";
 
         using var conexion = CrearConexion();
         conexion.Open();
-        using var comando = new SqlCommand(sql, conexion);
+        using var comando = new MySqlCommand(sql, conexion);
         AgregarParametros(comando, producto);
 
-        return (int)comando.ExecuteScalar()!;
+        return Convert.ToInt32(comando.ExecuteScalar());
     }
 
     public bool Actualizar(Producto producto)
     {
-        const string sql = @"UPDATE dbo.Productos
+        const string sql = @"UPDATE Productos
                              SET Nombre = @Nombre,
                                  Descripcion = @Descripcion,
                                  Precio = @Precio,
@@ -74,7 +74,7 @@ public class ProductoRepository : IProductoRepository
 
         using var conexion = CrearConexion();
         conexion.Open();
-        using var comando = new SqlCommand(sql, conexion);
+        using var comando = new MySqlCommand(sql, conexion);
         comando.Parameters.AddWithValue("@Id", producto.Id);
         AgregarParametros(comando, producto);
 
@@ -83,11 +83,11 @@ public class ProductoRepository : IProductoRepository
 
     public bool Eliminar(int id)
     {
-        const string sql = "DELETE FROM dbo.Productos WHERE Id = @Id";
+        const string sql = "DELETE FROM Productos WHERE Id = @Id";
 
         using var conexion = CrearConexion();
         conexion.Open();
-        using var comando = new SqlCommand(sql, conexion);
+        using var comando = new MySqlCommand(sql, conexion);
         comando.Parameters.AddWithValue("@Id", id);
 
         return comando.ExecuteNonQuery() > 0;
@@ -97,7 +97,7 @@ public class ProductoRepository : IProductoRepository
     {
         var productos = new List<Producto>();
         const string sql = @"SELECT Id, Nombre, Descripcion, Precio, Stock, Categoria, FechaCreacion
-                             FROM dbo.Productos
+                             FROM Productos
                              WHERE Nombre LIKE @Termino
                                 OR Descripcion LIKE @Termino
                                 OR Categoria LIKE @Termino
@@ -105,7 +105,7 @@ public class ProductoRepository : IProductoRepository
 
         using var conexion = CrearConexion();
         conexion.Open();
-        using var comando = new SqlCommand(sql, conexion);
+        using var comando = new MySqlCommand(sql, conexion);
         comando.Parameters.AddWithValue("@Termino", $"%{termino}%");
         using var lector = comando.ExecuteReader();
 
@@ -117,7 +117,7 @@ public class ProductoRepository : IProductoRepository
         return productos;
     }
 
-    private static void AgregarParametros(SqlCommand comando, Producto producto)
+    private static void AgregarParametros(MySqlCommand comando, Producto producto)
     {
         comando.Parameters.AddWithValue("@Nombre", producto.Nombre);
         comando.Parameters.AddWithValue("@Descripcion", (object?)producto.Descripcion ?? DBNull.Value);
@@ -126,7 +126,7 @@ public class ProductoRepository : IProductoRepository
         comando.Parameters.AddWithValue("@Categoria", (object?)producto.Categoria ?? DBNull.Value);
     }
 
-    private static Producto Mapear(SqlDataReader lector) => new()
+    private static Producto Mapear(MySqlDataReader lector) => new()
     {
         Id = lector.GetInt32(0),
         Nombre = lector.GetString(1),
