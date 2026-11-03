@@ -1,0 +1,45 @@
+@ProductoApi_HostAddress = http://localhost:5163
+
+GET {{ProductoApi_HostAddress}}/api/productos
+Accept: application/json
+
+###
+
+GET {{ProductoApi_HostAddress}}/api/productos/1
+Accept: application/json
+
+###
+
+GET {{ProductoApi_HostAddress}}/api/productos/buscar?termino=laptop
+Accept: application/json
+
+###
+
+POST {{ProductoApi_HostAddress}}/api/productos
+Content-Type: application/json
+
+{
+  "nombre": "Teclado Mecánico",
+  "descripcion": "Teclado con switches azules",
+  "precio": 899.90,
+  "stock": 15,
+  "categoria": "Accesorios"
+}
+
+###
+
+PUT {{ProductoApi_HostAddress}}/api/productos/1
+Content-Type: application/json
+
+{
+  "id": 1,
+  "nombre": "Laptop Lenovo Actualizada",
+  "descripcion": "Laptop de 15 pulgadas, 32 GB RAM",
+  "precio": 17999.99,
+  "stock": 5,
+  "categoria": "Computadoras"
+}
+
+###
+
+DELETE {{ProductoApi_HostAddress}}/api/productos/1
